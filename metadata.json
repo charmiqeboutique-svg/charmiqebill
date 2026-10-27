@@ -1,0 +1,6 @@
+{
+  "name": "CHARMIQE — Boutique POS & Billing",
+  "description": "Premium boutique point of sale and billing management software with real-time barcode scanning, inventory tracking, GST invoicing, and admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
