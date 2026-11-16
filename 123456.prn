@@ -1,0 +1,14 @@
+<xpml><page quantity='0' pitch='25.4 mm'></xpml>I8,A
+q792
+S2
+O
+JF
+D12
+ZT
+Q203,25
+<xpml></page></xpml><xpml><page quantity='1' pitch='25.4 mm'></xpml>N
+A487,182,2,1,2,2,N,"Sample Text"
+B575,138,2,3,3,8,76,N,"12345678"
+A432,53,2,1,2,2,N,"12345678"
+P1
+<xpml></page></xpml><xpml><end/></xpml>
