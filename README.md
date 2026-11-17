@@ -19,3 +19,5 @@ Prerequisites: Node.js and a PostgreSQL database.
 5. Run `npm run dev`.
 
 The server creates the PostgreSQL tables on startup. On the first PostgreSQL run, it imports the existing `data/invoice-state.json` snapshot when present; otherwise, it seeds PostgreSQL with the project's initial data. Successful API changes are committed to PostgreSQL before the server responds. PostgreSQL is required; the app does not silently fall back to in-memory storage.
+
+Production deployment configuration check.
