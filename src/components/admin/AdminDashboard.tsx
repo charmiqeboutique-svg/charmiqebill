@@ -1429,7 +1429,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setSelectedProductForPrint(null);
         }}
         product={selectedProductForPrint}
-        boutiqueName={businessSettings.boutiqueName}
       />
     </div>
   );

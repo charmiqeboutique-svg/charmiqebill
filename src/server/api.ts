@@ -158,32 +158,28 @@ apiRouter.post('/barcodes/generate', (req: Request, res: Response) => {
 });
 
 apiRouter.post('/barcodes/print-prn', async (req: Request, res: Response) => {
-  const { name, barcode, quantity } = (req.body ?? {}) as {
-    name?: unknown;
+  const { barcode, quantity } = (req.body ?? {}) as {
     barcode?: unknown;
     quantity?: unknown;
   };
   const labelQuantity = Number(quantity);
 
   if (
-    typeof name !== 'string' ||
-    !name.trim() ||
     typeof barcode !== 'string' ||
     !barcode.trim() ||
     !Number.isInteger(labelQuantity) ||
     labelQuantity < 1 ||
     labelQuantity > 24
   ) {
-    return res.status(400).json({ error: 'Product name, barcode, and a quantity from 1 to 24 are required.' });
+    return res.status(400).json({ error: 'Barcode and a quantity from 1 to 24 are required.' });
   }
 
   const cleanField = (value: string) =>
     value.replace(/[\x00-\x1f\x7f]/g, ' ').replace(/"/g, "'").trim();
-  const productName = cleanField(name);
   const productBarcode = cleanField(barcode);
 
-  if (!productName || !productBarcode) {
-    return res.status(400).json({ error: 'Product name and barcode must contain printable characters.' });
+  if (!productBarcode) {
+    return res.status(400).json({ error: 'Barcode must contain printable characters.' });
   }
 
   try {
@@ -195,9 +191,9 @@ apiRouter.post('/barcodes/print-prn', async (req: Request, res: Response) => {
       prn = prn.replace(pattern, (_match, prefix: string, suffix: string) => `${prefix}${value}${suffix}`);
     };
 
-    replaceField(/^(A487,182,2,1,2,2,N,")[^"]*(")$/m, productName, 'product name');
-    replaceField(/^(B575,138,2,3,3,8,76,N,")[^"]*(")$/m, productBarcode, 'barcode');
-    replaceField(/^(A432,53,2,1,2,2,N,")[^"]*(")$/m, productBarcode, 'barcode text');
+    replaceField(/^(A315,8,0,1,2,2,N,")[^"]*(")$/m, 'CHARMIQE', 'boutique name');
+    replaceField(/^(B90,55,0,3,3,8,76,N,")[^"]*(")$/m, productBarcode, 'barcode');
+    replaceField(/^(A280,150,0,1,2,2,N,")[^"]*(")$/m, productBarcode, 'barcode text');
 
     if (!/^P\d+$/m.test(prn)) {
       throw new Error('The 123456.prn template is missing its print quantity field.');

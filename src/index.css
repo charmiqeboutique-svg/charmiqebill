@@ -35,7 +35,10 @@
   body * {
     visibility: hidden;
   }
-  #printable-document, #printable-document * {
+  body:not(.printing-barcode-labels) #printable-document,
+  body:not(.printing-barcode-labels) #printable-document *,
+  body.printing-barcode-labels #barcode-print-document,
+  body.printing-barcode-labels #barcode-print-document * {
     visibility: visible;
   }
   #printable-document {
@@ -63,7 +66,45 @@
     margin: 0;
   }
 
-  #printable-document.barcode-prn-print {
+  .barcode-prn-modal,
+  .barcode-prn-dialog {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .barcode-prn-preview {
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  #barcode-print-document {
+    position: static;
+    width: 99.06mm;
+    margin: 0;
+    padding: 0;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  #barcode-print-document.barcode-prn-print {
     position: static;
     width: 99.06mm;
     max-width: none;
@@ -75,56 +116,49 @@
 
   .barcode-prn-label {
     box-sizing: border-box;
+    position: relative;
     width: 99.06mm;
     height: 25.4mm;
     margin: 0;
-    padding: 1.5mm 2mm;
+    padding: 1mm 2mm;
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 1.7fr;
-    grid-template-rows: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0 2mm;
+    display: block !important;
     overflow: hidden;
     page: barcode-prn-label;
     break-after: page;
     page-break-after: always;
   }
 
-  .barcode-prn-label > div:first-child {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-align: left;
-  }
-
-  .barcode-prn-label > div:first-child p {
+  .barcode-prn-name {
+    display: block;
+    position: absolute;
+    top: 1.5mm;
+    left: 0;
+    right: 0;
     margin: 0;
-    line-height: 1.2;
+    text-align: center;
+    font-size: 16px;
+    line-height: 1;
   }
 
-  .barcode-prn-label > div:nth-child(2) {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    min-width: 0;
-    margin: 0;
-  }
-
-  .barcode-prn-label > div:nth-child(2) svg {
+  .barcode-prn-bars {
+    position: absolute;
+    top: 7mm;
+    left: 0;
     width: 100%;
-    height: auto;
+    margin: 0;
+    text-align: center;
   }
 
-  .barcode-prn-label > div:last-child {
-    grid-column: 1;
-    grid-row: 2;
-    border: 0 !important;
-    padding: 0;
-    text-align: left;
-    line-height: 1.2;
+  .barcode-prn-bars svg {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 70%;
+    max-height: 10mm;
+    margin: 0 auto;
   }
 
   .barcode-prn-label:last-child {

@@ -7,14 +7,12 @@ interface BarcodePrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  boutiqueName: string;
 }
 
 export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   isOpen,
   onClose,
   product,
-  boutiqueName,
 }) => {
   const [labelCount, setLabelCount] = useState<number>(4);
   const [isDownloadingPrn, setIsDownloadingPrn] = useState(false);
@@ -23,12 +21,17 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   if (!isOpen || !product) return null;
 
   const barcodeSvg = generateBarcodeSvg(product.barcode, {
-    height: 44,
-    moduleWidth: 1.5,
+    height: 52,
+    moduleWidth: 1.8,
     showText: true,
   });
 
   const handlePrint = () => {
+    const resetPrintMode = () => {
+      document.body.classList.remove('printing-barcode-labels');
+    };
+    window.addEventListener('afterprint', resetPrintMode, { once: true });
+    document.body.classList.add('printing-barcode-labels');
     window.print();
   };
 
@@ -41,7 +44,6 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: product.name,
           barcode: product.barcode,
           quantity: labelCount,
         }),
@@ -81,8 +83,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-[#E8DFD8] overflow-hidden">
+    <div className="barcode-prn-modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+      <div className="barcode-prn-dialog bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-[#E8DFD8] overflow-hidden">
         {/* Header */}
         <div className="p-4 px-5 border-b border-[#E8DFD8] flex items-center justify-between bg-[#FAF7F4] no-print">
           <div className="flex items-center gap-2">
@@ -134,40 +136,23 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         )}
 
         {/* Labels Sheet Preview */}
-        <div className="p-6 bg-[#F5EFEB] max-h-[500px] overflow-y-auto">
+        <div className="barcode-prn-preview p-6 bg-[#F5EFEB] max-h-[500px] overflow-y-auto">
           <div
-            id="printable-document"
+            id="barcode-print-document"
             className="barcode-prn-print grid grid-cols-2 gap-4 max-w-xl mx-auto"
           >
             {Array.from({ length: labelCount }).map((_, idx) => (
               <div
                 key={idx}
-                className="barcode-prn-label bg-white border-2 border-dashed border-[#D8CCC0] rounded-xl p-3.5 text-center shadow-xs flex flex-col justify-between"
+                className="barcode-prn-label bg-white border-2 border-dashed border-[#D8CCC0] rounded-xl p-3.5 text-center shadow-xs"
               >
-                <div>
-                  <p className="font-display font-extrabold text-xs tracking-wider text-[#3B0F1E]">
-                    {boutiqueName}
-                  </p>
-                  <p className="text-[10px] font-semibold text-slate-800 truncate mt-0.5">
-                    {product.name}
-                  </p>
-                  <p className="text-[9px] text-slate-500 font-mono">
-                    SKU: {product.sku} {product.size ? `· ${product.size}` : ''}
-                  </p>
-                </div>
-
-                {/* Barcode SVG */}
+                <p className="barcode-prn-name font-display font-extrabold tracking-wider text-[#3B0F1E]">
+                  CHARMIQE
+                </p>
                 <div
-                  className="my-2 flex justify-center overflow-hidden"
+                  className="barcode-prn-bars"
                   dangerouslySetInnerHTML={{ __html: barcodeSvg }}
                 />
-
-                <div className="border-t border-slate-100 pt-1.5 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-500">{product.fabric || 'Pure Silk'}</span>
-                  <span className="font-bold text-xs text-[#3B0F1E] font-display tabular-nums">
-                    ₹{product.sellingPrice.toLocaleString('en-IN')}
-                  </span>
-                </div>
               </div>
             ))}
           </div>
