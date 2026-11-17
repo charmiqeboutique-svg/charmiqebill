@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, Tag } from 'lucide-react';
+import { X, Printer, Tag, Download } from 'lucide-react';
 import { Product } from '../../types/pos.ts';
 import { generateBarcodeSvg } from '../../lib/barcodeGenerator.ts';
 
@@ -17,6 +17,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   boutiqueName,
 }) => {
   const [labelCount, setLabelCount] = useState<number>(4);
+  const [isDownloadingPrn, setIsDownloadingPrn] = useState(false);
+  const [prnError, setPrnError] = useState('');
 
   if (!isOpen || !product) return null;
 
@@ -28,6 +30,41 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPrn = async () => {
+    setIsDownloadingPrn(true);
+    setPrnError('');
+
+    try {
+      const response = await fetch('/api/barcodes/print-prn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: product.name,
+          barcode: product.barcode,
+          quantity: labelCount,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json() as { error?: string };
+        throw new Error(result.error || 'Could not download the PRN label.');
+      }
+
+      const fileUrl = window.URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = `barcode-${product.barcode.replace(/[^a-zA-Z0-9_-]/g, '_')}.prn`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(fileUrl), 1000);
+    } catch (error) {
+      setPrnError(error instanceof Error ? error.message : 'Could not download the PRN label.');
+    } finally {
+      setIsDownloadingPrn(false);
+    }
   };
 
   return (
@@ -61,6 +98,14 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
               <span>Print Labels</span>
             </button>
             <button
+              onClick={handleDownloadPrn}
+              disabled={isDownloadingPrn}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-[#4A1525] text-[#4A1525] hover:bg-[#F5EFEB] disabled:opacity-50 text-xs font-semibold rounded-lg cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isDownloadingPrn ? 'Preparing...' : 'Download PRN'}</span>
+            </button>
+            <button
               onClick={onClose}
               className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
             >
@@ -68,6 +113,12 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             </button>
           </div>
         </div>
+
+        {prnError && (
+          <p role="alert" className="px-5 py-2 text-xs text-red-700 bg-red-50 no-print">
+            {prnError}
+          </p>
+        )}
 
         {/* Labels Sheet Preview */}
         <div className="p-6 bg-[#F5EFEB] max-h-[500px] overflow-y-auto">

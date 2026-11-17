@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { db } from './db.ts';
 import { generateRandomBarcode } from '../lib/barcodeGenerator.ts';
 import { createInvoicePdf } from './invoicePdf.ts';
@@ -12,7 +14,7 @@ apiRouter.use((req: Request, res: Response, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
 
   // Skip persisting read-only / session-only endpoints to prevent unnecessary latency
-  if (['/auth/login', '/auth/logout', '/barcodes/generate'].includes(req.path)) {
+  if (['/auth/login', '/auth/logout', '/barcodes/generate', '/barcodes/print-prn'].includes(req.path)) {
     return next();
   }
 
@@ -153,6 +155,63 @@ apiRouter.post('/barcodes/generate', (req: Request, res: Response) => {
     barcode = generateRandomBarcode(prefix);
   }
   res.json({ barcode });
+});
+
+apiRouter.post('/barcodes/print-prn', async (req: Request, res: Response) => {
+  const { name, barcode, quantity } = req.body as {
+    name?: unknown;
+    barcode?: unknown;
+    quantity?: unknown;
+  };
+  const labelQuantity = Number(quantity);
+
+  if (
+    typeof name !== 'string' ||
+    !name.trim() ||
+    typeof barcode !== 'string' ||
+    !barcode.trim() ||
+    !Number.isInteger(labelQuantity) ||
+    labelQuantity < 1 ||
+    labelQuantity > 24
+  ) {
+    return res.status(400).json({ error: 'Product name, barcode, and a quantity from 1 to 24 are required.' });
+  }
+
+  const cleanField = (value: string) =>
+    value.replace(/[\x00-\x1f\x7f]/g, ' ').replace(/"/g, "'").trim();
+  const productName = cleanField(name);
+  const productBarcode = cleanField(barcode);
+
+  if (!productName || !productBarcode) {
+    return res.status(400).json({ error: 'Product name and barcode must contain printable characters.' });
+  }
+
+  try {
+    let prn = await readFile(path.resolve(process.cwd(), '123456.prn'), 'utf8');
+    const replaceField = (pattern: RegExp, value: string, field: string) => {
+      if (!pattern.test(prn)) {
+        throw new Error(`The 123456.prn template is missing its ${field} field.`);
+      }
+      prn = prn.replace(pattern, (_match, prefix: string, suffix: string) => `${prefix}${value}${suffix}`);
+    };
+
+    replaceField(/^(A487,182,2,1,2,2,N,")[^"]*(")$/m, productName, 'product name');
+    replaceField(/^(B575,138,2,3,3,8,76,N,")[^"]*(")$/m, productBarcode, 'barcode');
+    replaceField(/^(A432,53,2,1,2,2,N,")[^"]*(")$/m, productBarcode, 'barcode text');
+
+    if (!/^P\d+$/m.test(prn)) {
+      throw new Error('The 123456.prn template is missing its print quantity field.');
+    }
+    prn = prn.replace(/^P\d+$/m, `P${labelQuantity}`);
+
+    const safeBarcode = productBarcode.replace(/[^a-zA-Z0-9_-]/g, '_');
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="barcode-${safeBarcode}.prn"`);
+    res.send(prn);
+  } catch (error) {
+    console.error('[CHARMIQE POS] Could not generate PRN barcode label:', error);
+    res.status(500).json({ error: 'Could not generate the PRN barcode label.' });
+  }
 });
 
 apiRouter.get('/barcodes/:barcode', (req: Request, res: Response) => {
