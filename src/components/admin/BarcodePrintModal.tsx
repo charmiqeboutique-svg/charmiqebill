@@ -48,11 +48,24 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       });
 
       if (!response.ok) {
-        const result = await response.json() as { error?: string };
-        throw new Error(result.error || 'Could not download the PRN label.');
+        const errorBody = await response.text();
+        let errorMessage = `Could not download the PRN label (HTTP ${response.status}).`;
+        if (errorBody.trim()) {
+          try {
+            const result = JSON.parse(errorBody) as { error?: string };
+            errorMessage = result.error || errorMessage;
+          } catch {
+            errorMessage = errorBody.slice(0, 200);
+          }
+        }
+        throw new Error(errorMessage);
       }
 
-      const fileUrl = window.URL.createObjectURL(await response.blob());
+      const prnFile = await response.blob();
+      if (!prnFile.size) {
+        throw new Error('The server returned an empty PRN label file.');
+      }
+      const fileUrl = window.URL.createObjectURL(prnFile);
       const link = document.createElement('a');
       link.href = fileUrl;
       link.download = `barcode-${product.barcode.replace(/[^a-zA-Z0-9_-]/g, '_')}.prn`;
@@ -86,7 +99,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
                 min="1"
                 max="24"
                 value={labelCount}
-                onChange={(e) => setLabelCount(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => setLabelCount(Math.min(24, Math.max(1, parseInt(e.target.value) || 1)))}
                 className="w-14 px-2 py-1 text-xs border border-[#DDD3C9] rounded-md text-center tabular-nums font-semibold"
               />
             </div>
@@ -124,12 +137,12 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         <div className="p-6 bg-[#F5EFEB] max-h-[500px] overflow-y-auto">
           <div
             id="printable-document"
-            className="grid grid-cols-2 gap-4 max-w-xl mx-auto"
+            className="barcode-prn-print grid grid-cols-2 gap-4 max-w-xl mx-auto"
           >
             {Array.from({ length: labelCount }).map((_, idx) => (
               <div
                 key={idx}
-                className="bg-white border-2 border-dashed border-[#D8CCC0] rounded-xl p-3.5 text-center shadow-xs flex flex-col justify-between"
+                className="barcode-prn-label bg-white border-2 border-dashed border-[#D8CCC0] rounded-xl p-3.5 text-center shadow-xs flex flex-col justify-between"
               >
                 <div>
                   <p className="font-display font-extrabold text-xs tracking-wider text-[#3B0F1E]">

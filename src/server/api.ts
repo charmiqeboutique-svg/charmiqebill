@@ -158,7 +158,7 @@ apiRouter.post('/barcodes/generate', (req: Request, res: Response) => {
 });
 
 apiRouter.post('/barcodes/print-prn', async (req: Request, res: Response) => {
-  const { name, barcode, quantity } = req.body as {
+  const { name, barcode, quantity } = (req.body ?? {}) as {
     name?: unknown;
     barcode?: unknown;
     quantity?: unknown;

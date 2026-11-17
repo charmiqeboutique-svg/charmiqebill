@@ -57,4 +57,78 @@
     size: auto;
     margin: 8mm;
   }
+
+  @page barcode-prn-label {
+    size: 99.06mm 25.4mm;
+    margin: 0;
+  }
+
+  #printable-document.barcode-prn-print {
+    position: static;
+    width: 99.06mm;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    display: block;
+    page: barcode-prn-label;
+  }
+
+  .barcode-prn-label {
+    box-sizing: border-box;
+    width: 99.06mm;
+    height: 25.4mm;
+    margin: 0;
+    padding: 1.5mm 2mm;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1.7fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0 2mm;
+    overflow: hidden;
+    page: barcode-prn-label;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .barcode-prn-label > div:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .barcode-prn-label > div:first-child p {
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .barcode-prn-label > div:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .barcode-prn-label > div:nth-child(2) svg {
+    width: 100%;
+    height: auto;
+  }
+
+  .barcode-prn-label > div:last-child {
+    grid-column: 1;
+    grid-row: 2;
+    border: 0 !important;
+    padding: 0;
+    text-align: left;
+    line-height: 1.2;
+  }
+
+  .barcode-prn-label:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
 }
