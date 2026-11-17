@@ -16,6 +16,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 }) => {
   const [labelCount, setLabelCount] = useState<number>(4);
   const [isDownloadingPrn, setIsDownloadingPrn] = useState(false);
+  const [isPrintingDirect, setIsPrintingDirect] = useState(false);
+  const [printStatus, setPrintStatus] = useState('');
   const [prnError, setPrnError] = useState('');
 
   if (!isOpen || !product) return null;
@@ -23,16 +25,54 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const barcodeSvg = generateBarcodeSvg(product.barcode, {
     height: 52,
     moduleWidth: 1.8,
-    showText: true,
+    showText: false,
   });
 
-  const handlePrint = () => {
-    const resetPrintMode = () => {
-      document.body.classList.remove('printing-barcode-labels');
-    };
-    window.addEventListener('afterprint', resetPrintMode, { once: true });
-    document.body.classList.add('printing-barcode-labels');
-    window.print();
+  // NEWPRN.prn label style: NAME- PRICE (uppercase, no currency symbol — the thermal
+  // printer font is ASCII-only). Skip the price if the product name already carries it.
+  const rawName = (product.name || '')
+    .replace(/₹/g, '')
+    .replace(/\s*-\s*$/, '')
+    .trim();
+  const labelText = rawName.includes(String(product.sellingPrice))
+    ? rawName
+    : `${rawName}- ${product.sellingPrice}`;
+  const displayLabel = labelText.toUpperCase();
+
+  const handlePrint = async () => {
+    setIsPrintingDirect(true);
+    setPrintStatus('');
+    setPrnError('');
+
+    try {
+      const response = await fetch('/api/barcodes/print-prn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barcode: product.barcode,
+          productName: displayLabel,
+          quantity: labelCount,
+          mode: 'print',
+        }),
+      });
+
+      const body = (await response.json().catch(() => null)) as {
+        success?: boolean;
+        printer?: string;
+        labels?: number;
+        error?: string;
+      } | null;
+
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.error || `Could not send the labels to the printer (HTTP ${response.status}).`);
+      }
+
+      setPrintStatus(`${body.labels ?? labelCount} labels printed on ${body.printer}.`);
+    } catch (error) {
+      setPrnError(error instanceof Error ? error.message : 'Could not send the labels to the printer.');
+    } finally {
+      setIsPrintingDirect(false);
+    }
   };
 
   const handleDownloadPrn = async () => {
@@ -45,6 +85,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           barcode: product.barcode,
+          productName: displayLabel,
           quantity: labelCount,
         }),
       });
@@ -83,8 +124,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   };
 
   return (
-    <div className="barcode-prn-modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-      <div className="barcode-prn-dialog bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-[#E8DFD8] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-[#E8DFD8] overflow-hidden">
         {/* Header */}
         <div className="p-4 px-5 border-b border-[#E8DFD8] flex items-center justify-between bg-[#FAF7F4] no-print">
           <div className="flex items-center gap-2">
@@ -107,10 +148,11 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             </div>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4A1525] hover:bg-[#3B0F1E] text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer"
+              disabled={isPrintingDirect}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4A1525] hover:bg-[#3B0F1E] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Labels</span>
+              <span>{isPrintingDirect ? 'Printing...' : 'Print Labels'}</span>
             </button>
             <button
               onClick={handleDownloadPrn}
@@ -135,27 +177,48 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           </p>
         )}
 
-        {/* Labels Sheet Preview */}
-        <div className="barcode-prn-preview p-6 bg-[#F5EFEB] max-h-[500px] overflow-y-auto">
+        {printStatus && (
+          <p role="status" className="px-5 py-2 text-xs text-emerald-800 bg-emerald-50 no-print">
+            {printStatus}
+          </p>
+        )}
+
+        {/* Labels Sheet Preview — mirrors the NEWPRN.prn two-up roll layout.
+            Printed label reads (top→bottom): CHARMIQE, product name, bars, barcode number. */}
+        <div className="p-6 bg-[#F5EFEB] max-h-[500px] overflow-y-auto">
           <div
-            id="barcode-print-document"
+            id="printable-document"
             className="barcode-prn-print grid grid-cols-2 gap-4 max-w-xl mx-auto"
           >
-            {Array.from({ length: labelCount }).map((_, idx) => (
+            {Array.from({ length: labelCount * 2 }).map((_, idx) => (
               <div
                 key={idx}
-                className="barcode-prn-label bg-white border-2 border-dashed border-[#D8CCC0] rounded-xl p-3.5 text-center shadow-xs"
+                className="barcode-prn-label bg-white border-2 border-dashed border-[#D8CCC0] rounded-xl px-3.5 py-4 text-center shadow-xs flex flex-col items-center"
               >
-                <p className="barcode-prn-name font-display font-extrabold tracking-wider text-[#3B0F1E]">
+                {/* Brand on top — like the printed A...,198 field */}
+                <p className="text-xs font-semibold text-slate-900 mb-2">
                   CHARMIQE
                 </p>
+                {/* Product name — same small print font, like the A...,148 field */}
+                <p className="barcode-prn-name text-xs font-semibold text-slate-900 mb-1.5 truncate max-w-full">
+                  {displayLabel}
+                </p>
+                {/* Barcode bars */}
                 <div
-                  className="barcode-prn-bars"
+                  className="barcode-prn-bars mb-1"
                   dangerouslySetInnerHTML={{ __html: barcodeSvg }}
                 />
+                {/* Barcode number under the bars — like the A...,43 field */}
+                <p className="font-mono text-xs font-semibold tracking-wide text-slate-900 tabular-nums">
+                  {product.barcode}
+                </p>
               </div>
             ))}
           </div>
+          <p className="mt-4 text-center text-[11px] font-medium text-slate-500 no-print">
+            Two-up roll layout · {labelCount} {labelCount === 1 ? 'copy' : 'copies'} × 2 labels ={' '}
+            {labelCount * 2} labels
+          </p>
         </div>
       </div>
     </div>

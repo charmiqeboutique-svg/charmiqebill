@@ -35,10 +35,7 @@
   body * {
     visibility: hidden;
   }
-  body:not(.printing-barcode-labels) #printable-document,
-  body:not(.printing-barcode-labels) #printable-document *,
-  body.printing-barcode-labels #barcode-print-document,
-  body.printing-barcode-labels #barcode-print-document * {
+  #printable-document, #printable-document * {
     visibility: visible;
   }
   #printable-document {
@@ -66,45 +63,7 @@
     margin: 0;
   }
 
-  .barcode-prn-modal,
-  .barcode-prn-dialog {
-    position: static !important;
-    inset: auto !important;
-    display: block !important;
-    width: auto !important;
-    max-width: none !important;
-    height: auto !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-
-  .barcode-prn-preview {
-    height: auto !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background: transparent !important;
-  }
-
-  #barcode-print-document {
-    position: static;
-    width: 99.06mm;
-    margin: 0;
-    padding: 0;
-    background: #ffffff !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
-  #barcode-print-document.barcode-prn-print {
+  #printable-document.barcode-prn-print {
     position: static;
     width: 99.06mm;
     max-width: none;

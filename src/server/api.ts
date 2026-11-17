@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { db } from './db.ts';
 import { generateRandomBarcode } from '../lib/barcodeGenerator.ts';
@@ -157,12 +159,61 @@ apiRouter.post('/barcodes/generate', (req: Request, res: Response) => {
   res.json({ barcode });
 });
 
+// Default thermal label printer (TVSE LP45 on USB). Override with LABEL_PRINTER_NAME env var.
+const LABEL_PRINTER_NAME = process.env.LABEL_PRINTER_NAME || 'TVSE LP45 BPLE';
+const RAW_PRINT_SCRIPT = path.resolve(process.cwd(), 'src', 'server', 'printRaw.ps1');
+
+async function sendRawToWindowsPrinter(printerName: string, data: Buffer): Promise<void> {
+  const tempPath = path.join(os.tmpdir(), `charmiqe-label-${Date.now()}-${Math.random().toString(36).slice(2)}.prn`);
+  await writeFile(tempPath, data);
+  try {
+    const stdout = await new Promise<string>((resolve, reject) => {
+      const child = spawn('powershell.exe', [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        RAW_PRINT_SCRIPT,
+        '-PrinterName',
+        printerName,
+        '-FilePath',
+        tempPath,
+      ]);
+      let out = '';
+      let err = '';
+      child.stdout.on('data', (chunk) => {
+        out += chunk;
+      });
+      child.stderr.on('data', (chunk) => {
+        err += chunk;
+      });
+      child.on('error', reject);
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve(out);
+        } else {
+          reject(new Error(err.trim() || `The printer process exited with code ${code}.`));
+        }
+      });
+    });
+    if (!stdout.includes('PRINTED')) {
+      throw new Error(`The printer "${printerName}" did not confirm the print job.`);
+    }
+  } finally {
+    await rm(tempPath, { force: true }).catch(() => undefined);
+  }
+}
+
 apiRouter.post('/barcodes/print-prn', async (req: Request, res: Response) => {
-  const { barcode, quantity } = (req.body ?? {}) as {
+  const { barcode, productName, quantity, mode } = (req.body ?? {}) as {
     barcode?: unknown;
+    productName?: unknown;
     quantity?: unknown;
+    mode?: unknown;
   };
   const labelQuantity = Number(quantity);
+  const wantsDirectPrint = mode === 'print';
 
   if (
     typeof barcode !== 'string' ||
@@ -177,36 +228,57 @@ apiRouter.post('/barcodes/print-prn', async (req: Request, res: Response) => {
   const cleanField = (value: string) =>
     value.replace(/[\x00-\x1f\x7f]/g, ' ').replace(/"/g, "'").trim();
   const productBarcode = cleanField(barcode);
+  const productLabel = typeof productName === 'string' ? cleanField(productName) : '';
+  const boutiqueName = cleanField(db.businessSettings.boutiqueName) || 'CHARMIQE';
 
   if (!productBarcode) {
     return res.status(400).json({ error: 'Barcode must contain printable characters.' });
   }
+  if (!productLabel) {
+    return res.status(400).json({ error: 'Product name must contain printable characters.' });
+  }
 
   try {
-    let prn = await readFile(path.resolve(process.cwd(), '123456.prn'), 'utf8');
+    let prn = await readFile(path.resolve(process.cwd(), 'NEWPRN.prn'), 'utf8');
     const replaceField = (pattern: RegExp, value: string, field: string) => {
       if (!pattern.test(prn)) {
-        throw new Error(`The 123456.prn template is missing its ${field} field.`);
+        throw new Error(`The NEWPRN.prn template is missing its ${field} field.`);
       }
       prn = prn.replace(pattern, (_match, prefix: string, suffix: string) => `${prefix}${value}${suffix}`);
     };
 
-    replaceField(/^(A315,8,0,1,2,2,N,")[^"]*(")$/m, 'CHARMIQE', 'boutique name');
-    replaceField(/^(B90,55,0,3,3,8,76,N,")[^"]*(")$/m, productBarcode, 'barcode');
-    replaceField(/^(A280,150,0,1,2,2,N,")[^"]*(")$/m, productBarcode, 'barcode text');
+    // NEWPRN.prn is a two-up layout: barcode, barcode text, product name and brand appear
+    // twice per roll (left + right column). Fill every occurrence.
+    replaceField(/^(B\d+,\d+,2,3,1,3,64,N,")[^"]*(")$/gm, productBarcode, 'barcode');
+    replaceField(/^(A\d+,43,2,[0-9a-z],1,1,N,")[^"]*(")$/gm, productBarcode, 'barcode text');
+    replaceField(/^(A\d+,148,2,[0-9a-z],1,1,N,")[^"]*(")$/gm, productLabel, 'product name');
+    replaceField(/^(A\d+,198,2,[0-9a-z],1,1,N,")[^"]*(")$/gm, boutiqueName, 'boutique name');
 
     if (!/^P\d+$/m.test(prn)) {
-      throw new Error('The 123456.prn template is missing its print quantity field.');
+      throw new Error('The NEWPRN.prn template is missing its print quantity field.');
     }
     prn = prn.replace(/^P\d+$/m, `P${labelQuantity}`);
+
+    const prnData = Buffer.from(prn, 'utf8');
+
+    if (wantsDirectPrint) {
+      await sendRawToWindowsPrinter(LABEL_PRINTER_NAME, prnData);
+      return res.json({
+        success: true,
+        printer: LABEL_PRINTER_NAME,
+        copies: labelQuantity,
+        labels: labelQuantity * 2,
+      });
+    }
 
     const safeBarcode = productBarcode.replace(/[^a-zA-Z0-9_-]/g, '_');
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="barcode-${safeBarcode}.prn"`);
-    res.send(prn);
+    res.send(prnData);
   } catch (error) {
-    console.error('[CHARMIQE POS] Could not generate PRN barcode label:', error);
-    res.status(500).json({ error: 'Could not generate the PRN barcode label.' });
+    console.error('[CHARMIQE POS] Could not print the barcode label:', error);
+    const message = error instanceof Error ? error.message : 'Unknown printer error';
+    res.status(500).json({ error: message });
   }
 });
 
