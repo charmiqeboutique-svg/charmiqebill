@@ -35,6 +35,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     .replace(/₹/g, '')
     .replace(/\s*-\s*$/, '')
     .trim();
+<<<<<<< HEAD
 
   const labelText = rawName.includes(String(product.sellingPrice))
     ? rawName
@@ -42,6 +43,21 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 
   const displayLabel = labelText.toUpperCase();
 
+=======
+
+  // const labelText = rawName.includes(String(product.sellingPrice))
+  //   ? rawName
+  //   : `${rawName}- ${product.sellingPrice}`;
+
+  // const displayLabel = labelText.toUpperCase();
+
+  // Barcode label: Product name only, without price
+const displayLabel = (product.name || '')
+  .replace(/₹/g, '')
+  .trim()
+  .toUpperCase();
+
+>>>>>>> 65eb6ed (fixed)
   // Direct printing
   const handlePrint = async () => {
     setIsPrintingDirect(true);
