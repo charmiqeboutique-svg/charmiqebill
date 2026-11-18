@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Printer, Tag, Download } from 'lucide-react';
 import { Product } from '../../types/pos.ts';
 import { generateBarcodeSvg } from '../../lib/barcodeGenerator.ts';
+import qz from 'qz-tray';
 
 interface BarcodePrintModalProps {
   isOpen: boolean;
