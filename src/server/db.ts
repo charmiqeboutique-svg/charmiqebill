@@ -33,7 +33,7 @@ export const initialBusinessSettings: BusinessSettings = {
 };
 
 export const initialTaxSettings: TaxSettings = {
-  defaultGstRate: 12,
+  defaultGstRate: 0,
   enableCompositionScheme: false,
   isInterstate: false,
   availableSlabs: [0, 5, 12, 18, 28],
@@ -139,7 +139,7 @@ export const initialProducts: Product[] = sareePriceGroups.flatMap(({ category, 
       costPrice: 0,
       sellingPrice: price,
       discountPercent: 0,
-      gstRate: 12,
+      gstRate: 0,
       stock: 10,
       lowStockThreshold: 2,
       fabric: category.replace(' Sarees', ''),
@@ -313,7 +313,7 @@ class BoutiqueDatabase {
       costPrice: Number(data.costPrice) || 0,
       sellingPrice: Number(data.sellingPrice) || 0,
       discountPercent: Number(data.discountPercent) || 0,
-      gstRate: Number(data.gstRate) || 12,
+      gstRate: Number.isFinite(Number(data.gstRate)) ? Number(data.gstRate) : 0,
       stock: Number(data.stock) || 0,
       lowStockThreshold: Number(data.lowStockThreshold) || 5,
       fabric: data.fabric || 'Silk',
@@ -466,7 +466,7 @@ class BoutiqueDatabase {
       const lineTaxable = Number((lineSubtotal - lineDiscount).toFixed(2));
 
       // Calculate GST
-      const gstRate = product.gstRate || this.taxSettings.defaultGstRate || 12;
+      const gstRate = product.gstRate ?? this.taxSettings.defaultGstRate ?? 0;
       const lineGst = Number(((lineTaxable * gstRate) / 100).toFixed(2));
       const lineCgst = Number((lineGst / 2).toFixed(2));
       const lineSgst = Number((lineGst / 2).toFixed(2));

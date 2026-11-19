@@ -94,7 +94,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     costPrice: 5000,
     sellingPrice: 8999,
     discountPercent: 0,
-    gstRate: 12,
+    gstRate: 0,
     stock: 10,
     lowStockThreshold: 3,
     fabric: 'Pure Silk',
@@ -189,7 +189,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           costPrice: 5000,
           sellingPrice: 8999,
           discountPercent: 0,
-          gstRate: 12,
+          gstRate: 0,
           stock: 10,
           lowStockThreshold: 3,
           fabric: 'Pure Silk',
@@ -376,7 +376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       costPrice: 5000,
                       sellingPrice: 8999,
                       discountPercent: 0,
-                      gstRate: 12,
+                      gstRate: 0,
                       stock: 10,
                       lowStockThreshold: 3,
                       fabric: 'Pure Silk',
@@ -834,7 +834,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       GST Rate (%)
                     </label>
                     <select
-                      value={formData.gstRate || 12}
+                      value={formData.gstRate ?? 0}
                       onChange={(e) => setFormData({ ...formData, gstRate: parseInt(e.target.value, 10) })}
                       className="w-full px-3 py-2 text-xs bg-[#FAF8F5] border border-[#DDD3C9] rounded-xl focus:bg-white"
                     >
@@ -1354,6 +1354,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     defaultValue={taxSettings.defaultGstRate}
                     className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#DDD3C9] rounded-xl"
                   >
+                    <option value={0}>0% (Exempt)</option>
                     <option value={5}>5%</option>
                     <option value={12}>12% (Standard Boutique Silk)</option>
                     <option value={18}>18%</option>

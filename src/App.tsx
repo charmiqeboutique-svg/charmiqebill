@@ -68,7 +68,7 @@ export default function App() {
     upiMerchantName: 'Charmiqe Haute Couture',
   });
   const [taxSettings, setTaxSettings] = useState<TaxSettings>({
-    defaultGstRate: 12,
+    defaultGstRate: 0,
     enableCompositionScheme: false,
     isInterstate: false,
     availableSlabs: [0, 5, 12, 18, 28],
@@ -230,7 +230,7 @@ export default function App() {
       }
 
       const unitPrice = product.sellingPrice + (variant?.additionalPrice || 0);
-      const gstRate = product.gstRate || taxSettings.defaultGstRate || 12;
+      const gstRate = product.gstRate ?? taxSettings.defaultGstRate ?? 0;
 
       setItems((prev) => {
         // Check if item or variant is already in cart
