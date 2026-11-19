@@ -79,7 +79,7 @@ export default function App() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [billingDate, setBillingDate] = useState('');
+  const [billingDate, setBillingDate] = useState(() => new Date().toLocaleDateString('en-GB'));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [amountReceived, setAmountReceived] = useState<number>(0);
   const [billResetKey, setBillResetKey] = useState(0);
@@ -400,7 +400,7 @@ export default function App() {
     setCustomerPhone('');
     setCustomerEmail('');
     setInvoiceNumber('');
-    setBillingDate('');
+    setBillingDate(new Date().toLocaleDateString('en-GB'));
     setPaymentMethod('CASH');
     setAmountReceived(0);
     setSavedInvoiceKey('');
@@ -534,6 +534,8 @@ export default function App() {
         throw new Error(invoiceRecord.error || 'Checkout failed');
       }
 
+      if (invoiceRecord.date) setBillingDate(invoiceRecord.date);
+      if (invoiceRecord.invoiceNumber) setInvoiceNumber(invoiceRecord.invoiceNumber);
       playCashierSuccessChime();
       setPreviewMode('a4');
       await refreshData();

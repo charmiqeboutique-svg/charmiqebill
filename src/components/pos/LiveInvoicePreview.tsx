@@ -185,10 +185,10 @@ export const LiveInvoicePreview: React.FC<LiveInvoicePreviewProps> = ({
                       {invoiceNumber || 'INV-2026-6353'}
                     </p>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      Date: {billingDate || '27/10/2026'}
+                      Date: {billingDate || new Date().toLocaleDateString('en-GB')}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      Due: {billingDate || '27/10/2026'}
+                      Due: {billingDate || new Date().toLocaleDateString('en-GB')}
                     </p>
                     <p className="text-[11px] text-slate-600 font-medium mt-1">
                       Cashier: {cashierName}
@@ -374,7 +374,7 @@ export const LiveInvoicePreview: React.FC<LiveInvoicePreviewProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span>Date:</span>
-                  <span>{billingDate || '27/10/2026'}</span>
+                  <span>{billingDate || new Date().toLocaleDateString('en-GB')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Cashier:</span>
