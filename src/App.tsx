@@ -39,7 +39,7 @@ export default function App() {
   const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
   const [currentStaff, setCurrentStaff] = useState<StaffUser>({
     id: 'usr_01',
-    name: 'Aishwarya Roy',
+    name: 'Charmiqe',
     email: 'charmiqe@gmail.com',
     role: 'SUPER_ADMIN',
     active: true,

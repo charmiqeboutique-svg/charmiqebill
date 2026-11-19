@@ -42,7 +42,7 @@ export const initialTaxSettings: TaxSettings = {
 export const initialStaff: StaffUser[] = [
   {
     id: 'usr_01',
-    name: 'Aishwarya Roy',
+    name: 'Charmiqe',
     email: 'charmiqe@gmail.com',
     role: 'SUPER_ADMIN',
     active: true,
@@ -164,7 +164,7 @@ class BoutiqueDatabase {
   businessSettings: BusinessSettings = { ...initialBusinessSettings };
   taxSettings: TaxSettings = { ...initialTaxSettings };
   staff: StaffUser[] = [...initialStaff];
-  currentStaff: StaffUser = initialStaff[0]; // Aishwarya Roy (SUPER_ADMIN)
+  currentStaff: StaffUser = initialStaff[0]; // Charmiqe (SUPER_ADMIN)
   invoiceCounter: number = 6353;
 
   constructor() {
