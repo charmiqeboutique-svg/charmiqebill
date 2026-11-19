@@ -632,6 +632,22 @@ class BoutiqueDatabase {
     return true;
   }
 
+  deleteInvoice(id: string): boolean {
+    const idx = this.invoices.findIndex((i) => i.id === id || i.invoiceNumber === id);
+    if (idx === -1) return false;
+    const inv = this.invoices[idx];
+    // Restore stock for each sold item
+    for (const it of inv.items) {
+      const prod = this.products.find((p) => p.id === it.productId);
+      if (prod) {
+        prod.stock += it.quantity;
+        if (prod.stock > 0) prod.status = 'ACTIVE';
+      }
+    }
+    this.invoices.splice(idx, 1);
+    return true;
+  }
+
   // --- Returns & Refunds ---
   processReturn(invoiceId: string, itemsToReturn: { productId: string; quantity: number }[], reason: string): SalesReturn {
     const inv = this.invoices.find((i) => i.id === invoiceId || i.invoiceNumber === invoiceId);

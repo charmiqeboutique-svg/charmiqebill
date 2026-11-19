@@ -77,6 +77,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onSwitchStaff,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [invoicePage, setInvoicePage] = useState(1);
+  const INVOICE_PAGE_SIZE = 10;
   const [productSearch, setProductSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [selectedProductForPrint, setSelectedProductForPrint] = useState<Product | null>(null);
@@ -121,6 +123,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalInvoices = invoices.length;
   const avgTicket = totalInvoices > 0 ? Math.round(totalSales / totalInvoices) : 0;
   const lowStockCount = products.filter((p) => p.stock <= p.lowStockThreshold).length;
+  const invoiceTotalPages = Math.max(1, Math.ceil(invoices.length / INVOICE_PAGE_SIZE));
+  const currentInvoicePage = Math.min(invoicePage, invoiceTotalPages);
 
   const categories = ['ALL', 'Fancy Sarees', 'Party Wear Sarees', 'Designer Fancy Sarees', 'Cotton Sarees', 'Linen Sarees', 'Handloom Sarees', 'Khadi Sarees'];
 
@@ -215,6 +219,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       await fetch(`/api/products/${id}`, { method: 'DELETE' });
       await onRefreshData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Delete invoice
+  const handleDeleteInvoice = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this invoice? Stock will be restored.')) return;
+    try {
+      const res = await fetch(`/api/invoices/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        await onRefreshData();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to delete invoice');
+      }
     } catch (err) {
       console.error(err);
     }
@@ -1110,10 +1130,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <th className="py-2.5 px-3 text-right">Tax Base</th>
                     <th className="py-2.5 px-3 text-right">Total GST</th>
                     <th className="py-2.5 px-4 text-right">Grand Total</th>
+                    <th className="py-2.5 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F4EFEA]">
-                  {invoices.map((inv) => (
+                  {invoices
+                    .slice((currentInvoicePage - 1) * INVOICE_PAGE_SIZE, currentInvoicePage * INVOICE_PAGE_SIZE)
+                    .map((inv) => (
                     <tr key={inv.id} className="hover:bg-[#FAF9F7]">
                       <td className="py-3 px-4 font-mono font-bold text-slate-900">
                         {inv.invoiceNumber}
@@ -1140,10 +1163,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <td className="py-3 px-4 text-right font-bold text-[#4A1525] tabular-nums font-display text-sm">
                         ₹{inv.grandTotal.toLocaleString('en-IN')}
                       </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => handleDeleteInvoice(inv.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
+                          title="Delete Invoice"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {/* Pagination */}
+              <div className="flex items-center justify-between p-4 border-t border-[#E8DFD8] bg-[#FAF7F4]">
+                <span className="text-[11px] text-slate-500">
+                  Page {currentInvoicePage} of {invoiceTotalPages}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={currentInvoicePage <= 1}
+                    onClick={() => setInvoicePage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1 text-xs font-semibold rounded-lg border border-[#DDD3C9] disabled:opacity-40 cursor-pointer"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    disabled={currentInvoicePage >= invoiceTotalPages}
+                    onClick={() => setInvoicePage((p) => p + 1)}
+                    className="px-3 py-1 text-xs font-semibold rounded-lg border border-[#DDD3C9] disabled:opacity-40 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
